@@ -4,7 +4,6 @@
  */
 module.exports = (outputPath, catalogs) => {
     const merge = require('deepmerge');
-    const fs = require('fs-extra');
     const mergedCatalog = merge.all(catalogs);
 
     const products = mergedCatalog[Object.keys(mergedCatalog)[0]];
@@ -21,29 +20,39 @@ module.exports = (outputPath, catalogs) => {
         }
     }
 
-    const filename = `${Object.keys(mergedCatalog)[0]}.json`;
-    const path = require('path');
-
-    fs.writeJSON(path.join(outputPath, filename), {
-        [Object.keys(mergedCatalog)[0]]: Object.values(productsMap)
-    }, {
-            spaces: 2,
-        }).then(() => {
-
-            const xml2js = require('xml2js');
-
-
-            var builder = new xml2js.Builder();
-            var xml = builder.buildObject(require(path.join(outputPath, filename)));
-            
-            fs.writeFile(path.join(outputPath, `${Object.keys(mergedCatalog)[0]}.xml`), xml, () => {
-
-                console.log('done');
-            });
-        });
+    const catalogName = Object.keys(mergedCatalog)[0];
+    createXML({ catalog: {
+        $: {
+            'catalog-id': catalogName,
+        },
+        product: xmlBeautify(productsMap)
+    } }, outputPath, catalogName);
 
     return mergedCatalog;
 };
+
+function xmlBeautify(productsMap) {
+    return Object.values(productsMap).map((product) => {
+        return {
+            $: {
+                'product-id': product.id
+            },
+            variations: product.variations
+        }
+    });
+}
+
+function createXML(data, outputPath, filename) {
+    const path = require('path');
+    const fs = require('fs');
+    const xml2js = require('xml2js');
+    const builder = new xml2js.Builder();
+    var xml = builder.buildObject(data);
+
+    fs.writeFile(path.join(outputPath, `${filename}.xml`), xml, () => {
+        console.log('done');
+    });
+}
 
 function getVariantsByProduct(product) {
     const variants = [];
@@ -58,7 +67,7 @@ function getVariantsByProduct(product) {
                         variant.forEach(productVariant => {
                             if (productVariant && productVariant.$ && !variantsIds.includes(productVariant.$['product-id'])) {
                                 variantsIds.push(productVariant.$['product-id']);
-                                variants.push(productVariant.$);
+                                variants.push(productVariant);
                             }
                         });
 
@@ -89,7 +98,7 @@ function mergeVariants(product, productVariants) {
                         variant.forEach(productVariant => {
                             if (productVariant && productVariant.$ && !variantsIds.includes(productVariant.$['product-id'])) {
                                 variantsIds.push(productVariant.$['product-id']);
-                                variants.push(productVariant.$);
+                                variants.push(productVariant);
                             }
                         });
                         if (productVariants) {
