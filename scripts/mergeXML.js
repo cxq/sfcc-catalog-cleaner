@@ -104,7 +104,7 @@ function mergeVariants(product, productVariants) {
                         if (productVariants) {
                             const cleanVariant = {};
                             variants.concat(productVariants).forEach(function (item) {
-                                cleanVariant[item['product-id']] = item;
+                                cleanVariant[item.$['product-id']] = item;
                             });
 
                             element.variant = Object.values(cleanVariant);
